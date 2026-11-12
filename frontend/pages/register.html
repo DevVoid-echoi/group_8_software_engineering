@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Đăng ký | Cho & Nhận</title>
+  <link rel="stylesheet" href="../css/base.css">
+  <link rel="stylesheet" href="../css/auth.css">
+  <script type="module" src="../js/pages/register.js"></script>
+</head>
+<body>
+  <header id="site-header"></header>
+
+  <main class="auth-page">
+    <section class="auth-card" aria-labelledby="register-title">
+      <h1 id="register-title">Tạo tài khoản</h1>
+      <p class="auth-subtitle">Một tài khoản vừa cho đồ, vừa nhận đồ được.</p>
+
+      <form id="register-form" novalidate>
+        <div class="form-alert" hidden></div>
+
+        <div class="field" data-field="fullName">
+          <label for="fullName">Họ và tên <span class="req" aria-hidden="true">*</span></label>
+          <input id="fullName" name="fullName" type="text" autocomplete="name"
+                 maxlength="100" required aria-describedby="fullName-error">
+          <p class="field-error" id="fullName-error" aria-live="polite"></p>
+        </div>
+
+        <div class="field" data-field="email">
+          <label for="email">Email <span class="req" aria-hidden="true">*</span></label>
+          <input id="email" name="email" type="email" autocomplete="email"
+                 placeholder="ban@vidu.com" required aria-describedby="email-error">
+          <p class="field-error" id="email-error" aria-live="polite"></p>
+        </div>
+
+        <div class="field" data-field="password">
+          <label for="password">Mật khẩu <span class="req" aria-hidden="true">*</span></label>
+          <div class="password-wrap">
+            <input id="password" name="password" type="password" autocomplete="new-password"
+                   minlength="8" required aria-describedby="password-hint password-error">
+            <button type="button" class="toggle-password" data-target="password"
+                    aria-label="Hiện mật khẩu" aria-pressed="false">Hiện</button>
+          </div>
+          <p class="field-hint" id="password-hint">Tối thiểu 8 ký tự.</p>
+          <p class="field-error" id="password-error" aria-live="polite"></p>
+        </div>
+
+        <div class="field" data-field="confirmPassword">
+          <label for="confirmPassword">Nhập lại mật khẩu <span class="req" aria-hidden="true">*</span></label>
+          <input id="confirmPassword" name="confirmPassword" type="password" autocomplete="new-password"
+                 required aria-describedby="confirmPassword-error">
+          <p class="field-error" id="confirmPassword-error" aria-live="polite"></p>
+        </div>
+
+        <div class="field-row">
+          <div class="field" data-field="phone">
+            <label for="phone">Số điện thoại <span class="optional">(tùy chọn)</span></label>
+            <input id="phone" name="phone" type="tel" inputmode="numeric" autocomplete="tel"
+                   maxlength="10" placeholder="0912345678" aria-describedby="phone-error">
+            <p class="field-error" id="phone-error" aria-live="polite"></p>
+          </div>
+
+          <div class="field" data-field="address">
+            <label for="address">Khu vực / địa chỉ <span class="optional">(tùy chọn)</span></label>
+            <input id="address" name="address" type="text" autocomplete="address-level2"
+                   placeholder="Hai Bà Trưng, Hà Nội" aria-describedby="address-error">
+            <p class="field-error" id="address-error" aria-live="polite"></p>
+          </div>
+        </div>
+
+        <button type="submit" class="btn btn-primary btn-block">Đăng ký</button>
+      </form>
+
+      <p class="auth-switch">Đã có tài khoản? <a href="login.html">Đăng nhập</a></p>
+    </section>
+  </main>
+</body>
+</html>
