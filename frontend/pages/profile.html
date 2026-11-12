@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Tài khoản của tôi | Cho & Nhận</title>
+  <link rel="stylesheet" href="../css/base.css">
+  <link rel="stylesheet" href="../css/auth.css">
+  <script type="module" src="../js/pages/profile.js"></script>
+</head>
+<body>
+  <header id="site-header"></header>
+
+  <main class="container profile-page">
+    <h1>Tài khoản của tôi</h1>
+
+    <p id="profile-status" class="form-alert alert-info" role="status">Đang tải thông tin...</p>
+
+    <section id="profile-card" class="profile-card" hidden>
+      <div class="profile-head">
+        <div id="avatar" class="avatar" aria-hidden="true"></div>
+        <div>
+          <p class="profile-name" data-user="fullName"></p>
+          <p class="profile-role" data-user="role"></p>
+        </div>
+      </div>
+
+      <dl class="profile-info">
+        <div><dt>Email</dt><dd data-user="email"></dd></div>
+        <div><dt>Số điện thoại</dt><dd data-user="phone"></dd></div>
+        <div><dt>Khu vực / địa chỉ</dt><dd data-user="address"></dd></div>
+        <div><dt>Ngày tham gia</dt><dd data-user="createdAt"></dd></div>
+      </dl>
+
+      <div class="profile-actions">
+        <button type="button" class="btn btn-ghost" disabled
+                title="Sẽ có ở sprint sau">Sửa thông tin (sprint sau)</button>
+        <button type="button" id="logout-btn" class="btn btn-danger">Đăng xuất</button>
+      </div>
+    </section>
+  </main>
+</body>
+</html>
