@@ -5,10 +5,6 @@
 // và nhờ BE bật CORS.
 export const API_BASE = '/api';
 
-// true  = dùng backend giả lập trong trình duyệt (js/api/mock.js), làm FE không cần chờ BE.
-// false = gọi backend thật.
-export const USE_MOCK = true;
-
 // Đường dẫn các trang, viết tương đối so với thư mục frontend.
 // File này nằm ở frontend/js/ nên '../' chính là frontend/. Nhờ vậy site chạy được
 // dù server lấy thư mục nào làm gốc (frontend/, website_tu_thien/, ...).

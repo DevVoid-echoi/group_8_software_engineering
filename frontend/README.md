@@ -9,7 +9,7 @@ HTML + CSS + JavaScript thuần (ES modules), làm theo API spec mục 8.5 trong
 ```
 frontend/
 ├── index.html                  # Danh sách bài đăng (Feature 5)
-├── posts/                      # Mã nguồn, ảnh và kiểm tra API của Feature 5
+├── posts/                      # Mã nguồn và kiểm tra API của Feature 5
 ├── pages/
 │   ├── register.html           # Đăng ký
 │   ├── login.html              # Đăng nhập
@@ -18,11 +18,10 @@ frontend/
 │   ├── base.css                # Biến màu, nút, header, thông báo (dùng chung cả site)
 │   └── auth.css                # Form + trang tài khoản
 └── js/
-    ├── config.js               # API_BASE, USE_MOCK, ROUTES
+    ├── config.js               # API_BASE, ROUTES
     ├── api/
     │   ├── client.js           # fetch wrapper: JSON, Bearer token, ApiError {status, message, errors}
-    │   ├── auth.api.js         # register(), login(), getMe()
-    │   └── mock.js             # Backend giả lập đúng spec, để làm FE trước khi BE xong
+    │   └── auth.api.js         # register(), login(), getMe()
     ├── utils/
     │   ├── storage.js          # Lưu/đọc token + user, kiểm tra token hết hạn (exp)
     │   ├── validators.js       # Ràng buộc trường theo spec (fullName 2–100, email, password ≥ 8, phone 10 số)
@@ -42,19 +41,18 @@ Phải chạy qua HTTP server (ES modules không chạy khi mở file trực ti�
 nên lấy thư mục nào làm gốc cũng được (`frontend/` hoặc thư mục cha của repo):
 
 ```bash
-cd frontend
-npx serve -l 5500 .        # hoặc: python3 -m http.server 5500
+python -u -m http.server 5501 --bind 127.0.0.1 --directory frontend
 # hoặc VS Code Live Server
 ```
 
-Mở `http://localhost:5500/pages/login.html` (nếu serve từ thư mục cha thì `.../frontend/pages/login.html`). Với `USE_MOCK = true`, đăng nhập thử bằng `a@gmail.com` / `matkhau123`.
-Muốn xóa dữ liệu mock: DevTools → Application → Local Storage → xóa `mock_users`.
+Mở `http://127.0.0.1:5501/` để xem danh sách, hoặc `http://127.0.0.1:5501/pages/login.html` để đăng nhập.
+Frontend gọi API thật bằng `fetch`, không tự tạo tài khoản hay bài đăng mẫu. Cần backend hoạt động để đăng ký, đăng nhập và thao tác bài đăng. HTTP server Python chỉ phục vụ giao diện, không cung cấp API hoặc kết nối PostgreSQL.
 
 ## Nối với backend thật
 
-1. Trong `js/config.js` đặt `USE_MOCK = false`.
-2. Nếu BE serve luôn thư mục frontend (`app.use(express.static('frontend'))`) thì giữ `API_BASE = '/api'`.
-   Nếu chạy khác cổng thì đặt `API_BASE = 'http://localhost:3000/api'` và BE cần bật CORS cho origin của FE.
+Trong `js/config.js`, giữ `API_BASE = '/api'` nếu BE phục vụ cả frontend và API trên cùng origin.
+Nếu BE chạy khác cổng, đặt `API_BASE` thành URL API thật (ví dụ `http://localhost:3000/api`) và bật CORS cho origin của frontend.
+Repo hiện chỉ có frontend và SQL; cần server backend do nhóm BE cung cấp. Tài khoản phải được đăng ký qua backend hoặc có sẵn trong database thật.
 
 ## Luồng đã xử lý
 
@@ -93,6 +91,6 @@ getCurrentUser()?.id                  // so với post.owner.id để hiện nú
 ## Cần cả nhóm chốt với BE
 
 - Token lưu ở `localStorage` (đơn giản, hợp với JWT 7 ngày). Đổi sang cookie httpOnly thì chỉ phải sửa `storage.js` và `client.js`.
-- Email có phân biệt hoa/thường không? Mock đang chuyển về chữ thường, BE nên làm giống.
+- Email có phân biệt hoa/thường không? Cần thống nhất cách chuẩn hóa email giữa FE và BE.
 - Số điện thoại: spec chỉ ghi "10 chữ số"; có bắt đầu bằng 0 bắt buộc không.
 - Sprint sau: sửa thông tin tài khoản (nút đã để sẵn ở trang profile, đang disable).

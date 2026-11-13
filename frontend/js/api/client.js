@@ -1,7 +1,6 @@
 // Wrapper cho fetch: gửi/nhận JSON, gắn token, chuẩn hóa lỗi theo spec 8.3.
-import { API_BASE, USE_MOCK } from '../config.js';
+import { API_BASE } from '../config.js';
 import { getToken, clearAuth } from '../utils/storage.js';
-import { mockFetch } from './mock.js';
 
 export class ApiError extends Error {
   /**
@@ -41,10 +40,9 @@ export async function request(path, { method = 'GET', body, auth = false } = {})
     headers.Authorization = `Bearer ${token}`;
   }
 
-  const doFetch = USE_MOCK ? mockFetch : fetch;
   let res;
   try {
-    res = await doFetch(API_BASE + path, {
+    res = await fetch(API_BASE + path, {
       method,
       headers,
       body: body !== undefined ? JSON.stringify(body) : undefined,

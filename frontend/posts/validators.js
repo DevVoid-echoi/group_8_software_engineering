@@ -1,4 +1,4 @@
-// API spec 8.2 + 8.7. Shared with the development mock, never a substitute for BE validation.
+// API spec 8.2 + 8.7. Frontend validation never substitutes for backend validation.
 export const CONDITION_LABELS = { new: 'Mới', like_new: 'Như mới', used: 'Đã qua sử dụng' };
 export const STATUS_LABELS = { available: 'Còn đồ', reserved: 'Đã hẹn nhận', given: 'Đã trao' };
 

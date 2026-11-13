@@ -1,124 +1,164 @@
-// Dependency-free API contract checks. No real backend or browser state is modified.
+// Isolated HTTP client checks. fetch is intercepted only inside this test process.
 import assert from 'node:assert/strict';
 import { pathToFileURL } from 'node:url';
+import { API_BASE } from '../../js/config.js';
 import { request, ApiError } from '../../js/api/client.js';
-import { mockFetch } from '../../js/api/mock.js';
-import { saveAuth, clearAuth } from '../../js/utils/storage.js';
+import { register, login, getMe } from '../../js/api/auth.api.js';
+import { saveAuth, getToken, clearAuth } from '../../js/utils/storage.js';
 import { getCategories, listPosts, getPost, createPost, updatePost, deletePost } from '../posts.api.js';
 import { createPayload, patchPayload, validatePost, isHttpUrl } from '../validators.js';
-import { mockPostRequest, MOCK_CATEGORIES } from '../posts.mock.js';
-import { USE_MOCK } from '../../js/config.js';
 
 export async function runContractChecks() {
-  if (!USE_MOCK) throw new Error('API contract checks require USE_MOCK = true; no real backend requests will be sent.');
   const previousStorage = Object.getOwnPropertyDescriptor(globalThis, 'localStorage');
+  const previousFetch = globalThis.fetch;
   const memory = new Map();
+  const calls = [];
+  const replies = [];
+  const passed = [];
   Object.defineProperty(globalThis, 'localStorage', { configurable: true, value: {
     getItem: (key) => memory.get(key) ?? null,
     setItem: (key, value) => memory.set(key, String(value)),
-    removeItem: (key) => memory.delete(key), clear: () => memory.clear(),
+    removeItem: (key) => memory.delete(key),
   } });
-  const passed = [];
+  globalThis.fetch = async (url, options) => {
+    calls.push({ url, ...options });
+    assert(replies.length, `Unexpected request: ${url}`);
+    const response = replies.shift();
+    if (response instanceof Error) throw response;
+    return response;
+  };
   const check = (name, callback) => { callback(); passed.push(name); };
+  const reply = (status, body) => replies.push(new Response(body === undefined ? null : JSON.stringify(body), { status, headers: { 'Content-Type': 'application/json' } }));
+  const lastCall = (path, method) => {
+    const call = calls.at(-1);
+    assert.equal(call.url, API_BASE + path);
+    assert.equal(call.method, method);
+    assert.equal(call.headers.Accept, 'application/json');
+    return call;
+  };
   const errorStatus = (status) => (error) => error instanceof ApiError && error.status === status;
+  const user = { id: 7, fullName: 'Test User' };
+  const jwtHeader = btoa(JSON.stringify({ alg: 'HS256', typ: 'JWT' }));
+  const jwtPayload = btoa(JSON.stringify({ sub: user.id, exp: Math.floor(Date.now() / 1000) + 3600 }));
+  const token = `${jwtHeader}.${jwtPayload}.fixture`;
   try {
-    const { data: categories } = await getCategories();
-    check('GET categories: data envelope and database category IDs', () => assert.deepEqual(categories, MOCK_CATEGORIES));
-    const first = await listPosts();
-    check('GET posts: default page 1, limit 12, full pagination', () => {
-      assert.equal(first.data.length, 12);
-      assert.deepEqual(first.pagination, { page: 1, limit: 12, total: 14, totalPages: 2 });
-      assert.deepEqual(Object.keys(first.data[0]).sort(), ['id', 'title', 'imageUrl', 'location', 'status', 'category', 'createdAt'].sort());
-      assert(first.data.every((post, index, data) => index === 0 || data[index - 1].createdAt >= post.createdAt));
+    const categories = [{ id: 2, name: 'Quần áo' }];
+    reply(200, { data: categories });
+    const categoryResponse = await getCategories();
+    check('Categories use public GET /categories', () => {
+      assert.deepEqual(categoryResponse, { data: categories });
+      assert(!lastCall('/categories', 'GET').headers.Authorization);
     });
-    const second = await listPosts({ page: 2 });
-    check('GET posts: page 2 without duplicates', () => {
-      assert.equal(second.data.length, 2);
-      assert(!second.data.some((post) => first.data.some((entry) => entry.id === post.id)));
+    const empty = { data: [], pagination: { page: 1, limit: 12, total: 0, totalPages: 0 } };
+    reply(200, empty);
+    const list = await listPosts();
+    check('List uses documented pagination and preserves an empty response', () => {
+      assert.deepEqual(list, empty);
+      assert(!lastCall('/posts?page=1&limit=12', 'GET').headers.Authorization);
     });
-    const { post: detail } = await getPost(first.data[0].id);
-    check('GET detail: post envelope with owner, description and condition', () => {
-      assert.equal(detail.owner.id, 1);
-      assert.equal(typeof detail.description, 'string');
-      assert.equal(typeof detail.itemCondition, 'string');
-      assert(detail.updatedAt);
+    reply(200, { ...empty, pagination: { ...empty.pagination, page: 2 } });
+    await listPosts({ page: 2 });
+    check('Page changes use the API page parameter', () => lastCall('/posts?page=2&limit=12', 'GET'));
+    reply(200, { post: { id: 15 } });
+    const detail = await getPost(15);
+    check('Public detail preserves the post envelope', () => {
+      assert.deepEqual(detail, { post: { id: 15 } });
+      assert(!lastCall('/posts/15', 'GET').headers.Authorization);
     });
-    const values = { title: '  Bộ sách muốn trao tặng  ', categoryId: '1', description: '  Sách còn rất tốt.  ', itemCondition: 'used', location: '  Hà Nội  ', imageUrl: '', ownerId: '999', status: 'given' };
-    const payload = createPayload(values);
-    check('POST payload: camelCase, numeric categoryId, no ownerId/status/empty imageUrl', () => {
-      assert.deepEqual(payload, { title: 'Bộ sách muốn trao tặng', categoryId: 1, description: 'Sách còn rất tốt.', itemCondition: 'used', location: 'Hà Nội' });
+    reply(201, { user });
+    await register({ fullName: user.fullName, email: 'test@example.invalid', password: 'test-password' });
+    check('Registration calls the real HTTP client', () => {
+      const call = lastCall('/auth/register', 'POST');
+      assert.equal(JSON.parse(call.body).email, 'test@example.invalid');
+      assert(!call.headers.Authorization);
     });
-    await assert.rejects(createPost(payload), errorStatus(401)); passed.push('POST requires authentication');
-    const signedIn = await request('/auth/login', { method: 'POST', body: { email: 'a@gmail.com', password: 'matkhau123' } });
+    reply(200, { token, user });
+    const signedIn = await login('test@example.invalid', 'test-password');
+    check('Login reads token and user from the backend response', () => {
+      lastCall('/auth/login', 'POST');
+      assert.deepEqual(signedIn, { token, user });
+    });
     saveAuth(signedIn.token, signedIn.user);
-    const me = await request('/users/me', { auth: true });
-    check('Existing login + GET users/me integration', () => assert.equal(me.user.id, 1));
-    const created = (await createPost(payload)).post;
-    check('POST response: owner from token, available status, ISO timestamps', () => {
-      assert.equal(created.owner.id, me.user.id);
-      assert.equal(created.status, 'available');
-      assert.equal(created.imageUrl, null);
-      assert(!Number.isNaN(Date.parse(created.createdAt)));
+    reply(200, { user });
+    assert.deepEqual(await getMe(), { user });
+    check('Account request sends the shared Bearer token', () => assert.equal(lastCall('/users/me', 'GET').headers.Authorization, `Bearer ${token}`));
+
+    const values = { title: '  Áo khoác còn tốt  ', categoryId: '2', description: '  Áo đã giặt sạch.  ', itemCondition: 'used', location: '  Hà Nội  ', imageUrl: '', ownerId: '999', status: 'given' };
+    const payload = createPayload(values);
+    check('Create payload has numeric categoryId and excludes owner/status/empty image', () => assert.deepEqual(payload, {
+      title: 'Áo khoác còn tốt', categoryId: 2, description: 'Áo đã giặt sạch.', itemCondition: 'used', location: 'Hà Nội',
+    }));
+    reply(201, { post: { id: 15 } });
+    await createPost(payload);
+    check('Create sends POST JSON and authentication', () => {
+      const call = lastCall('/posts', 'POST');
+      assert.deepEqual(JSON.parse(call.body), payload);
+      assert.equal(call.headers['Content-Type'], 'application/json');
+      assert.equal(call.headers.Authorization, `Bearer ${token}`);
     });
-    const patch = patchPayload({ ...values, title: created.title, categoryId: String(created.category.id), location: created.location, description: 'Đã đóng gói cẩn thận.', status: 'reserved' }, created);
-    check('PATCH payload contains only changed fields', () => assert.deepEqual(patch, { description: 'Đã đóng gói cẩn thận.', status: 'reserved' }));
-    const updated = (await updatePost(created.id, patch)).post;
-    check('PATCH preserves omitted fields and ownership', () => {
-      assert.equal(updated.description, patch.description);
-      assert.equal(updated.status, 'reserved');
-      assert.equal(updated.title, created.title);
-      assert.deepEqual(updated.owner, created.owner);
-      assert.equal(updated.createdAt, created.createdAt);
+    const original = { ...payload, id: 15, category: categories[0], status: 'available', imageUrl: null };
+    const patch = patchPayload({ ...values, description: 'Đã đóng gói.', status: 'reserved' }, original);
+    reply(200, { post: { ...original, ...patch } });
+    await updatePost(15, patch);
+    check('PATCH sends only changed fields', () => {
+      const call = lastCall('/posts/15', 'PATCH');
+      assert.deepEqual(JSON.parse(call.body), { description: 'Đã đóng gói.', status: 'reserved' });
+      assert.equal(call.headers.Authorization, `Bearer ${token}`);
     });
-    const headers = { Authorization: `Bearer ${signedIn.token}` };
-    const badOwner = await mockFetch('/api/posts', { method: 'POST', headers, body: JSON.stringify({ ...payload, ownerId: 999 }) });
-    check('Mock rejects client-supplied ownership with 400 field errors', () => assert.equal(badOwner.status, 400));
-    const ownerError = await badOwner.json();
-    check('400 error shape: message and errors', () => { assert(ownerError.message); assert(ownerError.errors.ownerId); });
-    await assert.rejects(updatePost(2, { title: 'Đổi bài của người khác' }), errorStatus(403)); passed.push('PATCH rejects non-owner');
-    await assert.rejects(deletePost(2), errorStatus(403)); passed.push('DELETE rejects non-owner');
-    const foreign = await mockFetch('/api/posts/2', { method: 'DELETE', headers });
-    check('403 error shape has no validation errors object', () => assert.equal(foreign.status, 403));
-    const forbiddenBody = await foreign.json();
-    assert.deepEqual(Object.keys(forbiddenBody), ['message']);
-    const removed = await deletePost(created.id);
-    check('DELETE 204 is consumed without parsing a JSON body', () => assert.equal(removed, null));
-    await assert.rejects(getPost(created.id), errorStatus(404)); passed.push('Deleted post returns 404');
-    const rawCreated = await mockPostRequest('/posts', { method: 'POST', body: payload, user: me.user }).json();
-    const rawDeleted = mockPostRequest(`/posts/${rawCreated.post.id}`, { method: 'DELETE', user: me.user });
-    const rawText = await rawDeleted.text();
-    check('DELETE raw HTTP response: 204 and empty body', () => { assert.equal(rawDeleted.status, 204); assert.equal(rawText, ''); });
-    check('Field constraints and safe image protocols', () => {
+    const deleted = new Response(null, { status: 204 });
+    deleted.text = () => { throw new Error('Do not parse a 204 body'); };
+    replies.push(deleted);
+    const deletion = await deletePost(15);
+    check('DELETE handles 204 without reading a body', () => {
+      const call = lastCall('/posts/15', 'DELETE');
+      assert.equal(deletion, null);
+      assert.equal(call.body, undefined);
+      assert.equal(call.headers.Authorization, `Bearer ${token}`);
+    });
+    reply(400, { message: 'Dữ liệu không hợp lệ', errors: { title: 'Tên quá ngắn' } });
+    await assert.rejects(createPost(payload), (error) => errorStatus(400)(error) && error.errors.title === 'Tên quá ngắn');
+    passed.push('400 preserves backend field validation errors');
+    reply(403, { message: 'Không phải chủ bài' });
+    await assert.rejects(updatePost(15, patch), (error) => errorStatus(403)(error) && error.message === 'Không phải chủ bài');
+    passed.push('403 preserves the backend permission decision');
+    reply(404, { message: 'Bài không còn tồn tại' });
+    await assert.rejects(getPost(15), errorStatus(404));
+    passed.push('404 stays an error instead of substituting data');
+    replies.push(new Error('offline'));
+    const beforeOffline = calls.length;
+    await assert.rejects(listPosts(), errorStatus(0));
+    check('Network failure is reported without a fallback request', () => assert.equal(calls.length, beforeOffline + 1));
+    reply(401, { message: 'Hết phiên đăng nhập' });
+    await assert.rejects(getMe(), errorStatus(401));
+    check('401 clears the expired account session', () => { assert.equal(getToken(), null); assert(!memory.has('auth_user')); });
+    const beforeUnauthorized = calls.length;
+    await assert.rejects(deletePost(15), errorStatus(401));
+    check('Protected writes without a token do not make a request', () => assert.equal(calls.length, beforeUnauthorized));
+    saveAuth(`${jwtHeader}.${jwtPayload}.mock`, user);
+    check('A legacy preview token is discarded before reaching the backend', () => { assert.equal(getToken(), null); assert(!memory.has('auth_user')); });
+    check('Form validation follows field limits and rejects unsafe image URLs', () => {
+      assert.deepEqual(validatePost(payload, categories), {});
       assert(validatePost({ ...payload, title: 'abc' }, categories).title);
       assert(validatePost({ ...payload, title: 'x'.repeat(151) }, categories).title);
-      assert(validatePost({ ...payload, categoryId: 999 }, categories).categoryId);
       assert(validatePost({ ...payload, description: 'x'.repeat(2001) }, categories).description);
+      assert(validatePost({ ...payload, categoryId: 999 }, categories).categoryId);
       assert(validatePost({ ...payload, itemCondition: 'old' }, categories).itemCondition);
       assert(validatePost({ ...payload, location: ' ' }, categories).location);
       assert(!isHttpUrl('javascript:alert(1)'));
       assert(!isHttpUrl('data:image/svg+xml,<svg/>'));
-      assert(isHttpUrl('https://example.com/photo.jpg'));
     });
+    assert.equal(replies.length, 0);
     clearAuth();
-    const publicPost = await getPost(1);
-    check('Guests can still view details', () => assert.equal(publicPost.post.id, 1));
-    await assert.rejects(deletePost(1), errorStatus(401)); passed.push('DELETE without token returns 401');
-    const limitError = mockPostRequest('/posts?page=1&limit=51');
-    check('Pagination rejects limit greater than 50', () => assert.equal(limitError.status, 400));
-    const stored = JSON.parse(memory.get('mock_posts_v1'));
-    for (const post of stored) mockPostRequest(`/posts/${post.id}`, { method: 'DELETE', user: { id: post.owner.id } });
-    const empty = await listPosts();
-    check('Empty collection keeps the documented envelope', () => assert.deepEqual(empty, { data: [], pagination: { page: 1, limit: 12, total: 0, totalPages: 0 } }));
     return { passed: passed.length, checks: passed };
   } finally {
+    globalThis.fetch = previousFetch;
     if (previousStorage) Object.defineProperty(globalThis, 'localStorage', previousStorage);
     else delete globalThis.localStorage;
   }
 }
 
-// Node CLI and node_repl can both run the same checks; no package installation needed.
 if (typeof process !== 'undefined' && process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
   const result = await runContractChecks();
-  console.log(`PASS: ${result.passed} API contract checks`);
+  console.log(`PASS: ${result.passed} HTTP client checks`);
   for (const name of result.checks) console.log(`  ✓ ${name}`);
 }
