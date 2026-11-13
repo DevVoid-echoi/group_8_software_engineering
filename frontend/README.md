@@ -1,4 +1,6 @@
-# Frontend: Quản lý tài khoản người dùng (Sprint 1)
+# Frontend: Cho & Nhận (Sprint 1)
+
+Trang chủ `index.html` hiện là **Feature 5 — Quản lý bài đăng**: danh sách, chi tiết, đăng, sửa và xóa. Xem [hướng dẫn preview và API bài đăng](posts/README.md). Phần dưới mô tả phần tài khoản sẵn có.
 
 HTML + CSS + JavaScript thuần (ES modules), làm theo API spec mục 8.5 trong doc Sprint 1.
 
@@ -6,7 +8,8 @@ HTML + CSS + JavaScript thuần (ES modules), làm theo API spec mục 8.5 trong
 
 ```
 frontend/
-├── index.html                  # Trang chủ placeholder (phần danh sách đồ do nhóm bài đăng ghép vào)
+├── index.html                  # Danh sách bài đăng (Feature 5)
+├── posts/                      # Mã nguồn, ảnh và kiểm tra API của Feature 5
 ├── pages/
 │   ├── register.html           # Đăng ký
 │   ├── login.html              # Đăng nhập

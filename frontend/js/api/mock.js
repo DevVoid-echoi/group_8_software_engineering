@@ -8,6 +8,7 @@
 
 import { API_BASE } from '../config.js';
 import { validateRegister } from '../utils/validators.js';
+import { mockPostRequest } from '../../posts/posts.mock.js';
 
 const DB_KEY = 'mock_users';
 const DELAY_MS = 400;
@@ -139,12 +140,14 @@ export async function mockFetch(url, { method = 'GET', headers = {}, body } = {}
   await new Promise((r) => setTimeout(r, DELAY_MS));
   const path = url.startsWith(API_BASE) ? url.slice(API_BASE.length) : url;
   const handler = routes[`${method.toUpperCase()} ${path.split('?')[0]}`];
-  if (!handler) return json(404, { message: `Mock chưa có API ${method} ${path}` });
   let parsed;
   try {
     parsed = body ? JSON.parse(body) : undefined;
   } catch {
     return json(400, { message: 'Body không phải JSON hợp lệ' });
   }
-  return handler(parsed, headers);
+  if (handler) return handler(parsed, headers);
+  const payload = readToken(headers);
+  const mockUser = payload ? loadUsers().find((user) => user.id === payload.sub) : null;
+  return mockPostRequest(path, { method: method.toUpperCase(), body: parsed, user: mockUser ? toPublicUser(mockUser) : null });
 }
