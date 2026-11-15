@@ -72,19 +72,3 @@ CREATE TRIGGER trg_posts_updated_at
 BEFORE UPDATE ON posts
 FOR EACH ROW
 EXECUTE FUNCTION update_updated_at_column();
-
--- 6. TRIGGER: Không cho xóa bài đã ở trạng thái 'given' để giữ lịch sử
-CREATE OR REPLACE FUNCTION prevent_delete_given_post()
-RETURNS TRIGGER AS $$
-BEGIN
-    IF OLD.status = 'given' THEN
-        RAISE EXCEPTION 'Không thể xóa bài đăng đã trao (given) để giữ lịch sử.';
-    END IF;
-    RETURN OLD;
-END;
-$$ LANGUAGE plpgsql;
-
-CREATE TRIGGER trg_prevent_delete_given_post
-BEFORE DELETE ON posts
-FOR EACH ROW
-EXECUTE FUNCTION prevent_delete_given_post();
