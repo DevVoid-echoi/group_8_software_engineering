@@ -3,21 +3,57 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Cho & Nhận | Đăng và nhận đồ từ thiện</title>
+  <meta name="description" content="Một món đồ cũ, một niềm vui mới. Khám phá và chia sẻ những món đồ còn hữu ích cùng cộng đồng Cho & Nhận.">
+  <meta name="theme-color" content="#285b43">
+  <title>Đồ được chia sẻ · Cho & Nhận</title>
+  <link rel="icon" href="posts/assets/favicon.svg" type="image/svg+xml">
   <link rel="stylesheet" href="css/base.css">
-  <script type="module">
-    import { renderHeader } from './js/components/header.js';
-    renderHeader();
-  </script>
+  <link rel="stylesheet" href="posts/posts.css">
+  <script type="module" src="posts/posts.js"></script>
 </head>
-<body>
+<body class="posts-page">
+  <a class="skip-link" href="#posts">Đến danh sách đồ</a>
   <header id="site-header"></header>
+  <main class="posts-shell">
+    <section class="intro" aria-labelledby="page-title">
+      <div>
+        <p class="eyebrow"><span class="small-leaf" aria-hidden="true">↗</span> CHIA SẺ ĐIỀU CÒN HỮU ÍCH</p>
+        <h1 id="page-title">Đồ cũ, <span>niềm vui mới.</span></h1>
+        <p class="intro-description">Món đồ bạn không còn dùng, có thể là điều ai đó đang cần.<br>Cùng trao đi và viết tiếp câu chuyện của những món đồ.</p>
+      </div>
+      <aside class="sharing-note" aria-label="Thông điệp sẻ chia">
+        <span class="cycle-icon" aria-hidden="true">↻</span>
+        <div><strong>Thêm một vòng đời.<br>Thêm một điều tử tế.</strong><p>Mọi món đồ ở đây đều được trao tặng.</p></div>
+        <svg class="note-sprout" aria-hidden="true" viewBox="0 0 100 100"><path d="M50 95V47M50 68C8 68 9 24 9 24c38-3 44 22 41 44ZM50 51C48 12 91 9 91 9c7 35-17 45-41 42Z"/></svg>
+      </aside>
+    </section>
 
-  <main class="container home-placeholder">
-    <h1>Đồ đang chờ người nhận</h1>
-    <!-- Trang chủ placeholder: phần danh sách đồ thuộc feature "Quản lý bài đăng".
-         Giữ <header id="site-header"> + renderHeader() để dùng chung thanh tài khoản. -->
-    <p class="muted">Danh sách đồ sẽ được ghép từ phần Quản lý bài đăng.</p>
+    <section id="posts" class="catalog" aria-labelledby="catalog-title" tabindex="-1">
+      <div class="catalog-heading"><div class="catalog-title"><h2 id="catalog-title">Đồ được chia sẻ</h2><span id="post-count" class="count-pill" hidden></span></div><span class="sort-note"><svg class="icon" aria-hidden="true" viewBox="0 0 24 24"><path d="M8 4v16m-4-4 4 4 4-4M16 4h5m-5 5h4m-4 5h3"/></svg>Mới nhất trước</span></div>
+      <div id="catalog-alert" class="catalog-alert" role="alert" hidden></div>
+      <div id="list-state" class="list-state" role="status" hidden><span class="state-symbol" aria-hidden="true">↻</span><h3 id="state-title"></h3><p id="state-description"></p><button id="state-action" class="btn btn-primary" type="button" hidden></button></div>
+      <div id="post-grid" class="post-grid" aria-busy="true" aria-label="Danh sách đồ được chia sẻ"></div>
+      <nav id="pagination" class="pagination" aria-label="Phân trang bài đăng" hidden><button id="previous-page" type="button" class="btn btn-ghost">← Trang trước</button><span id="page-summary" aria-live="polite"></span><button id="next-page" type="button" class="btn btn-ghost">Trang sau →</button></nav>
+    </section>
+    <div class="community-note"><span aria-hidden="true">♡</span><p>Một món đồ được trao đi, một niềm vui được giữ lại.</p></div>
   </main>
+  <footer class="posts-footer posts-shell"><span>Cho & Nhận<span class="brand-period">.</span></span><p>Đồ cũ tiếp nối. Sẻ chia lan xa.</p><span class="footer-note">Được trao tặng, bằng sự tử tế <span aria-hidden="true">↗</span></span></footer>
+
+  <dialog id="post-dialog" class="post-dialog" aria-labelledby="dialog-title"><div id="dialog-content"></div><button id="close-dialog" class="icon-button close-dialog" type="button" aria-label="Đóng cửa sổ">✕</button></dialog>
+  <dialog id="delete-dialog" class="delete-dialog" aria-labelledby="delete-title" aria-describedby="delete-description"><div class="delete-symbol" aria-hidden="true">⌫</div><h2 id="delete-title">Xóa bài đăng này?</h2><p id="delete-description"></p><p class="delete-warning">Bài đăng sẽ được gỡ khỏi danh sách. Bạn không thể hoàn tác thao tác này.</p><p id="delete-error" role="alert" hidden></p><div class="delete-actions"><button id="cancel-delete" class="btn btn-ghost" type="button" autofocus>Giữ lại bài</button><button id="confirm-delete" class="btn btn-delete" type="button">Xóa bài đăng</button></div></dialog>
+  <div id="toast" class="post-toast" role="status" aria-live="polite" hidden></div>
+
+  <template id="post-card-template"><article class="post-card"><a class="card-link"><div class="card-photo"><img loading="lazy" decoding="async" alt=""><span class="status-badge"></span><span class="photo-fallback" aria-hidden="true" hidden>↻</span></div><div class="card-copy"><p class="card-category"></p><h3></h3><div class="card-bottom"><span class="card-location"><svg class="icon" aria-hidden="true" viewBox="0 0 24 24"><path d="M20 10c0 6-8 11-8 11S4 16 4 10a8 8 0 1 1 16 0Z"/><circle cx="12" cy="10" r="2.5"/></svg><span></span></span><span class="card-arrow" aria-hidden="true">↗</span></div></div></a></article></template>
+
+  <template id="post-form-template"><div class="editor-layout"><aside class="editor-aside"><a class="editor-brand" href="#">Cho & Nhận<span>.</span></a><p class="eyebrow">MỘT ĐIỀU TỬ TẾ NHỎ</p><h3>Đồ cũ của bạn.<br>Khởi đầu mới<br>của ai đó.</h3><p>Một chút thông tin rõ ràng sẽ giúp món đồ tìm được người cần.</p><div class="editor-illustration" aria-hidden="true"><span>↻</span><svg viewBox="0 0 100 100"><path d="M50 95V47M50 68C8 68 9 24 9 24c38-3 44 22 41 44ZM50 51C48 12 91 9 91 9c7 35-17 45-41 42Z"/></svg></div><span class="aside-bottom">Cảm ơn bạn đã chọn sẻ chia.</span></aside><div class="editor-main"><p id="editor-kicker" class="eyebrow">GỬI ĐI MỘT NIỀM VUI</p><h2 id="dialog-title" tabindex="-1"></h2><p class="editor-subtitle">Kể một chút về món đồ bạn muốn trao tặng.</p><form id="post-form" novalidate><div class="form-alert" role="alert" hidden></div>
+    <div class="field" data-field="title"><label for="post-title">Tên món đồ <span>*</span></label><input id="post-title" name="title" minlength="5" maxlength="150" required placeholder="Ví dụ: Bộ giáo trình năm nhất" aria-describedby="title-error"><p class="field-error" id="title-error"></p></div>
+    <div class="form-row"><div class="field" data-field="categoryId"><label for="post-category">Danh mục <span>*</span></label><select id="post-category" name="categoryId" required aria-describedby="categoryId-error"><option value="">Chọn danh mục</option></select><p class="field-error" id="categoryId-error"></p></div><div class="field" data-field="itemCondition"><label for="post-condition">Tình trạng món đồ <span>*</span></label><select id="post-condition" name="itemCondition" required aria-describedby="itemCondition-error"><option value="">Chọn tình trạng</option><option value="new">Mới</option><option value="like_new">Như mới</option><option value="used">Đã qua sử dụng</option></select><p class="field-error" id="itemCondition-error"></p></div></div>
+    <div class="field" data-field="description"><div class="label-row"><label for="post-description">Mô tả <span>*</span></label><span id="description-count" class="input-note">0 / 2000</span></div><textarea id="post-description" name="description" rows="4" maxlength="2000" required placeholder="Món đồ còn tốt thế nào? Có điều gì người nhận cần biết?" aria-describedby="description-error description-count"></textarea><p class="field-error" id="description-error"></p></div>
+    <div class="field" data-field="location"><label for="post-location">Khu vực nhận đồ <span>*</span></label><input id="post-location" name="location" required placeholder="Ví dụ: Cầu Giấy, Hà Nội" aria-describedby="location-error"><p class="field-error" id="location-error"></p></div>
+    <div class="field" data-field="imageUrl"><label for="post-image">Link ảnh <span class="optional">(không bắt buộc)</span></label><input id="post-image" name="imageUrl" type="url" placeholder="https://example.com/anh-mon-do.jpg" aria-describedby="imageUrl-error image-help"><p class="input-note" id="image-help">Dán đường dẫn ảnh để mọi người dễ hình dung món đồ.</p><p class="field-error" id="imageUrl-error"></p><div id="image-preview" class="image-preview" hidden><img alt="Ảnh xem trước của món đồ"><span>Ảnh món đồ</span></div></div>
+    <div class="field" data-field="status" id="status-field" hidden><label for="post-status">Trạng thái bài đăng <span>*</span></label><select id="post-status" name="status" aria-describedby="status-error"><option value="available">Còn đồ</option><option value="reserved">Đã hẹn nhận</option><option value="given">Đã trao</option></select><p class="field-error" id="status-error"></p></div>
+    <div class="form-actions"><span><span class="required-mark">*</span> Thông tin bắt buộc</span><div><button type="button" id="cancel-editor" class="btn btn-ghost">Hủy</button><button type="submit" class="btn btn-primary" id="save-post">Đăng bài chia sẻ ↗</button></div></div>
+  </form></div></div></template>
+  <noscript><p class="posts-shell">Vui lòng bật JavaScript để xem và quản lý bài đăng.</p></noscript>
 </body>
 </html>

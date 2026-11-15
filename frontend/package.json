@@ -1,0 +1,9 @@
+{
+  "name": "cho-va-nhan-frontend",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "preview": "python -u -m http.server 5501 --bind 127.0.0.1",
+    "test:posts": "node posts/tests/api-contract.test.mjs"
+  }
+}

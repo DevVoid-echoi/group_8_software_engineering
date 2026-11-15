@@ -27,7 +27,8 @@ export function isTokenExpired(token) {
 export function getToken() {
   const token = localStorage.getItem(TOKEN_KEY);
   if (!token) return null;
-  if (isTokenExpired(token)) {
+  // Phiên dùng thử cũ không được gửi lên backend thật.
+  if (token.endsWith('.mock') || isTokenExpired(token)) {
     clearAuth();
     return null;
   }
