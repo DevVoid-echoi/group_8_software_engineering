@@ -3,7 +3,7 @@
 // Nếu FE và BE chạy chung origin (Express serve luôn thư mục frontend) thì để '/api'.
 // Nếu chạy khác cổng (vd. Live Server :5500, BE :3000) thì đổi thành 'http://localhost:3000/api'
 // và nhờ BE bật CORS.
-export const API_BASE = '/api';
+export const API_BASE = 'http://localhost:3000/api';
 
 // Đường dẫn các trang, viết tương đối so với thư mục frontend.
 // File này nằm ở frontend/js/ nên '../' chính là frontend/. Nhờ vậy site chạy được
