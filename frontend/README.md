@@ -9,7 +9,8 @@ HTML + CSS + JavaScript thuần (ES modules), làm theo API spec mục 8.5 trong
 ```
 frontend/
 ├── index.html                  # Danh sách bài đăng (Feature 5)
-├── posts/                      # Mã nguồn và kiểm tra API của Feature 5
+├── package.json                # Script preview và test:posts
+├── posts/                      # Feature 5: posts.js, posts.api.js, validators.js, posts.css, tests/
 ├── pages/
 │   ├── register.html           # Đăng ký
 │   ├── login.html              # Đăng nhập
@@ -37,22 +38,31 @@ frontend/
 
 ## Chạy thử
 
-Phải chạy qua HTTP server (ES modules không chạy khi mở file trực tiếp). Mọi đường dẫn đều tương đối
-nên lấy thư mục nào làm gốc cũng được (`frontend/` hoặc thư mục cha của repo):
+Frontend gọi API thật bằng `fetch`, không có dữ liệu giả lập, nên cần chạy cả backend. Cách nhanh nhất, từ thư mục gốc repo:
 
 ```bash
-python -u -m http.server 5501 --bind 127.0.0.1 --directory frontend
-# hoặc VS Code Live Server
+./start.sh        # backend :3000 + frontend :5500 (chuẩn bị .env xem README gốc)
 ```
 
-Mở `http://127.0.0.1:5501/` để xem danh sách, hoặc `http://127.0.0.1:5501/pages/login.html` để đăng nhập.
-Frontend gọi API thật bằng `fetch`, không tự tạo tài khoản hay bài đăng mẫu. Cần backend hoạt động để đăng ký, đăng nhập và thao tác bài đăng. HTTP server Python chỉ phục vụ giao diện, không cung cấp API hoặc kết nối PostgreSQL.
+Mở `http://localhost:5500/` để xem danh sách bài đăng, hoặc `http://localhost:5500/pages/login.html` để đăng nhập.
+Tài khoản mẫu (sau khi seed database): `a@gmail.com`, `b@gmail.com`, `c@gmail.com`, `admin@gmail.com`, mật khẩu `matkhau123`.
 
-## Nối với backend thật
+Chỉ chạy riêng frontend (backend đã chạy sẵn ở cổng 3000):
 
-Trong `js/config.js`, giữ `API_BASE = '/api'` nếu BE phục vụ cả frontend và API trên cùng origin.
-Nếu BE chạy khác cổng, đặt `API_BASE` thành URL API thật (ví dụ `http://localhost:3000/api`) và bật CORS cho origin của frontend.
-Repo hiện chỉ có frontend và SQL; cần server backend do nhóm BE cung cấp. Tài khoản phải được đăng ký qua backend hoặc có sẵn trong database thật.
+```bash
+cd frontend
+python3 -m http.server 5500 --bind 127.0.0.1    # hoặc VS Code Live Server ở cổng 5500
+```
+
+Phải chạy qua HTTP server vì ES modules không chạy khi mở file trực tiếp. Mọi đường dẫn đều tương đối nên lấy
+`frontend/` hay thư mục gốc repo làm gốc server đều được.
+
+## Kết nối backend
+
+- `js/config.js` đặt `API_BASE = 'http://localhost:3000/api'` (backend FastAPI chạy ở cổng 3000).
+- Backend chỉ cho phép (CORS) frontend chạy ở `http://localhost:5500` và `http://127.0.0.1:5500`.
+  Chạy frontend ở cổng khác (vd. 5501) thì đăng nhập/tải dữ liệu sẽ lỗi, trừ khi thêm origin đó vào `CORS_ORIGINS` trong `backend/.env`.
+- Tài khoản nằm trong database PostgreSQL, tạo qua trang đăng ký hoặc script seed. Frontend chỉ lưu token và thông tin user hiện tại ở `localStorage` (`auth_token`, `auth_user`), không lưu mật khẩu.
 
 ## Luồng đã xử lý
 
@@ -70,27 +80,27 @@ Repo hiện chỉ có frontend và SQL; cần server backend do nhóm BE cung c�
 
 `confirmPassword` chỉ kiểm tra ở FE, không gửi lên BE. Trường tùy chọn để trống thì không gửi.
 
-## Dùng lại cho các trang khác (nhóm bài đăng)
+## Dùng lại phần dùng chung
 
-Đường dẫn import/CSS viết tương đối theo vị trí file. Ví dụ với một trang trong `pages/`
-(`<link rel="stylesheet" href="../css/base.css">`, `<script type="module" src="../js/pages/xxx.js">`), file `js/pages/xxx.js`:
+Header, API client, token và tiện ích form trong `js/` dùng chung cho cả site. Import bằng đường dẫn tương đối
+theo vị trí file, ví dụ từ `posts/posts.js` (cách Feature 5 đang dùng):
 
 ```js
-import { renderHeader } from '../components/header.js';
-import { requireAuth } from '../utils/auth-guard.js';
-import { request } from '../api/client.js';
-import { getCurrentUser } from '../utils/storage.js';
-import { ROUTES } from '../config.js';    // link giữa các trang: dùng ROUTES, đừng viết cứng '/pages/...'
+import { renderHeader } from '../js/components/header.js';
+import { request } from '../js/api/client.js';
+import { getMe } from '../js/api/auth.api.js';
+import { getToken, getCurrentUser } from '../js/utils/storage.js';
+import { ROUTES } from '../js/config.js';   // link giữa các trang: dùng ROUTES, đừng viết cứng '/pages/...'
 
-renderHeader();                       // cần <header id="site-header"></header>
-if (requireAuth()) { /* trang đăng đồ */ }
-await request('/posts', { method: 'POST', body: data, auth: true });   // tự gắn token
-getCurrentUser()?.id                  // so với post.owner.id để hiện nút sửa/xóa
+renderHeader();                        // cần <header id="site-header"></header>
+await request('/posts', { method: 'POST', body: data, auth: true });   // tự gắn Bearer token
+(await getMe()).user.id                // so với post.owner.id để hiện nút sửa/xóa
 ```
 
-## Cần cả nhóm chốt với BE
+## Kiểm tra
 
-- Token lưu ở `localStorage` (đơn giản, hợp với JWT 7 ngày). Đổi sang cookie httpOnly thì chỉ phải sửa `storage.js` và `client.js`.
-- Email có phân biệt hoa/thường không? Cần thống nhất cách chuẩn hóa email giữa FE và BE.
-- Số điện thoại: spec chỉ ghi "10 chữ số"; có bắt đầu bằng 0 bắt buộc không.
-- Sprint sau: sửa thông tin tài khoản (nút đã để sẵn ở trang profile, đang disable).
+```bash
+cd frontend && npm run test:posts      # kiểm tra hợp đồng API của Feature 5 (Node.js 18+)
+```
+
+Sửa thông tin tài khoản để sprint sau (nút đã để sẵn ở trang profile, đang disable).
